@@ -64,6 +64,7 @@ use WindowsAzure\MediaServices\Models\Operation;
 use WindowsAzure\MediaServices\Models\OperationState;
 use WindowsAzure\MediaServices\Models\Channel;
 use WindowsAzure\MediaServices\Models\Program;
+use WindowsAzure\MediaServices\Models\StreamingEndpoint;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -3554,6 +3555,236 @@ class MediaServicesRestProxy extends ServiceRestProxy implements IMediaServices
         $op = $this->sendDeleteProgramOperation($program);
 
         // waiting for delete operation finishes
+        $op = $this->awaitOperation($op);
+
+        // true if succeeded
+        return $op->getState() == OperationState::Succeeded;
+    }
+    
+    /**
+     * Send Create operation.
+     *
+     * @param StreamingEndpoint $streamingEndpoint StreamingEndpoint data
+     *
+     * @return Operation The operation to track the streamingEndpoint create
+     */
+    public function sendCreateStreamingEndpointOperation(StreamingEndpoint $streamingEndpoint)
+    {
+        return $this->_sendOperation($streamingEndpoint, 'StreamingEndpoints');
+    }
+
+    /**
+     * Send Update operation.
+     *
+     * @param StreamingEndpoint $streamingEndpoint StreamingEndpoint data
+     *
+     * @return Operation The operation to track the streamingEndpoint update
+     */
+    public function sendUpdateStreamingEndpointOperation(StreamingEndpoint $streamingEndpoint)
+    {
+        $streamingEndpointId = $streamingEndpoint->getId();
+        Validate::notNull($streamingEndpointId, 'streamingEndpointId');
+
+        return $this->_sendOperation(
+            $streamingEndpoint,
+            "StreamingEndpoints('{$streamingEndpointId}')",
+            Resources::HTTP_MERGE,
+            [Resources::STATUS_ACCEPTED, Resources::STATUS_NO_CONTENT]);
+    }
+
+    /**
+     * Get existing streamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data
+     *
+     * @return StreamingEndpoint Created StreamingEndpoint
+     */
+    public function getStreamingEndpoint($streamingEndpoint)
+    {
+        $streamingEndpointId = Utilities::getEntityId(
+            $streamingEndpoint,
+            'WindowsAzure\MediaServices\Models\StreamingEndpoint'
+        );
+
+        return StreamingEndpoint::createFromOptions($this->_getEntity("StreamingEndpoints('{$streamingEndpointId}')"));
+    }
+
+    /**
+     * Delete streamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data or streamingEndpoint Id
+     *
+     * @return Operation
+     */
+    public function sendDeleteStreamingEndpointOperation($streamingEndpoint)
+    {
+        $streamingEndpointId = Utilities::getEntityId(
+            $streamingEndpoint,
+            'WindowsAzure\MediaServices\Models\StreamingEndpoint'
+        );
+
+        return $this->_sendOperation(null, "StreamingEndpoints('{$streamingEndpointId}')", Resources::HTTP_DELETE);
+    }
+
+    /**
+     * Get list of StreamingEndpoints.
+     *
+     * @return StreamingEndpoint[]
+     */
+    public function getStreamingEndpointList()
+    {
+        $entityList = $this->_getEntityList('StreamingEndpoints');
+        $result = [];
+
+        foreach ($entityList as $streamingEndpoint) {
+            $result[] = StreamingEndpoint::createFromOptions($streamingEndpoint);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Start a streamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data or streamingEndpoint Id
+     *
+     * @return Operation
+     */
+    public function sendStartStreamingEndpointOperation($streamingEndpoint)
+    {
+        $streamingEndpointId = Utilities::getEntityId(
+            $streamingEndpoint,
+            'WindowsAzure\MediaServices\Models\StreamingEndpoint'
+        );
+        $headers = [
+            Resources::CONTENT_TYPE => Resources::JSON_CONTENT_TYPE,
+        ];
+
+        return $this->_sendOperation(
+            null,
+            "StreamingEndpoints('{$streamingEndpointId}')/Start",
+            Resources::HTTP_POST,
+            Resources::STATUS_ACCEPTED,
+            $headers);
+    }
+
+    /**
+     * Stop a streamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data or streamingEndpoint Id
+     *
+     * @return Operation
+     */
+    public function sendStopStreamingEndpointOperation($streamingEndpoint)
+    {
+        $streamingEndpointId = Utilities::getEntityId(
+            $streamingEndpoint,
+            'WindowsAzure\MediaServices\Models\StreamingEndpoint'
+        );
+        $headers = [
+            Resources::CONTENT_TYPE => Resources::JSON_CONTENT_TYPE,
+        ];
+
+        return $this->_sendOperation(
+            null,
+            "StreamingEndpoints('{$streamingEndpointId}')/Stop",
+            Resources::HTTP_POST,
+            Resources::STATUS_ACCEPTED,
+            $headers);
+    }
+
+    /**
+     * Create a StreamingEndpoint.
+     *
+     * @param StreamingEndpoint $streamingEndpoint StreamingEndpoint data
+     *
+     * @return StreamingEndpoint the created streamingEndpoint
+     */
+    public function createStreamingEndpoint(StreamingEndpoint $streamingEndpoint)
+    {
+        $op = $this->sendCreateStreamingEndpointOperation($streamingEndpoint);
+
+        // waiting for create operation finishes
+        $op = $this->awaitOperation($op);
+
+        if ($op->getState() != OperationState::Succeeded) {
+            return null;
+        }
+
+        // get and return the createStreamingEndpoint
+        return $this->getStreamingEndpoint($op->getTargetEntityId());
+    }
+
+    /**
+     * Update a StreamingEndpoint.
+     *
+     * @param StreamingEndpoint $streamingEndpoint StreamingEndpoint data
+     *
+     * @return StreamingEndpoint the updated streamingEndpoint
+     */
+    public function updateStreamingEndpoint(StreamingEndpoint $streamingEndpoint)
+    {
+        $op = $this->sendUpdateStreamingEndpointOperation($streamingEndpoint);
+
+        // waiting for create operation finishes
+        $op = $this->awaitOperation($op);
+
+        if ($op->getState() != OperationState::Succeeded) {
+            return null;
+        }
+
+        // get and return the createStreamingEndpoint
+        return $this->getStreamingEndpoint($streamingEndpoint->getId());
+    }
+
+    /**
+     * Delete a StreamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data or streamingEndpoint Id
+     *
+     * @return bool true if succeeded
+     */
+    public function deleteStreamingEndpoint($streamingEndpoint)
+    {
+        $op = $this->sendDeleteStreamingEndpointOperation($streamingEndpoint);
+
+        // waiting for delete operation finishes
+        $op = $this->awaitOperation($op);
+
+        // true if succeeded
+        return $op->getState() == OperationState::Succeeded;
+    }
+
+    /**
+     * Start a StreamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data or streamingEndpoint Id
+     *
+     * @return bool true if succeeded
+     */
+    public function startStreamingEndpoint($streamingEndpoint)
+    {
+        $op = $this->sendStartStreamingEndpointOperation($streamingEndpoint);
+
+        // waiting for create operation finishes
+        $op = $this->awaitOperation($op);
+
+        // true if succeeded
+        return $op->getState() == OperationState::Succeeded;
+    }
+
+    /**
+     * Stop a StreamingEndpoint.
+     *
+     * @param StreamingEndpoint|string $streamingEndpoint StreamingEndpoint data or streamingEndpoint Id
+     *
+     * @return bool true if succeeded
+     */
+    public function stopStreamingEndpoint($streamingEndpoint)
+    {
+        $op = $this->sendStopStreamingEndpointOperation($streamingEndpoint);
+
+        // waiting for create operation finishes
         $op = $this->awaitOperation($op);
 
         // true if succeeded
