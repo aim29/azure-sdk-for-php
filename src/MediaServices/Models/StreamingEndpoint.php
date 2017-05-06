@@ -152,7 +152,7 @@ class StreamingEndpoint
         }
 
         if (!empty($options['HostName'])) {
-            Validate::isArray($options['HostName'], 'options[HostName]');
+            Validate::isString($options['HostName'], 'options[HostName]');
             $this->_hostName = $options['HostName'];
         }
     }
